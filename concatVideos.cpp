@@ -2,10 +2,6 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <cstdlib>
-#include <cstdio>
-#include <cstring>
-#include <memory>
 #include <stdexcept>
 #include <array>
 #include <algorithm>
@@ -21,12 +17,20 @@
 #define EXEC_BUFFER_SIZE 1024
 
 /** Print debugging output **/
-#define DEBUG
+//#define DEBUG
 
 using namespace std;
 
+/** Function definitions **/
 string exec (const char*);
+void gatherInputFiles (vector<string>*, string*);
+void writeTempFile (vector<string>*, string*, string*);
 
+/**
+ * Concatenates individual video chunks into a single large MP4 video by
+ * creating a list, saving the temporary name of the list, and calling
+ * the concatenation command in FFMPEG.
+ */
 int main (int argc, char* argv[]) 
 {
   
@@ -42,46 +46,19 @@ int main (int argc, char* argv[])
 
   string tempFileName = TEMP_FILE_NAME;
 
-  // Get input files, store in vector
   vector<string> inputFiles;
-  HANDLE hFind;
-  WIN32_FIND_DATA data;
 
-  stringstream ss;
-  ss << pathToVideos << "\\*.*";
-
-  hFind = FindFirstFile(ss.str().c_str(), &data);
-  if (hFind != INVALID_HANDLE_VALUE) {
-  	do {
-
-  		if (strcmp(data.cFileName,".") == 0 ||
-  			strcmp(data.cFileName,"..") == 0)
-  			continue;
-
-    	inputFiles.push_back(data.cFileName);
-
-    } while (FindNextFile(hFind, &data));
-    FindClose(hFind);
-  }
+  // Gather the input files by scanning the directory and storing in a vector
+  gatherInputFiles(&inputFiles, &pathToVideos);
 
   // Sort the string vector
   sort(inputFiles.begin(), inputFiles.end());
 
-  // Open the temp file
-  fstream fs (tempFileName.c_str(), fstream::out);
-
-  int i;
-  for (i=0; i<inputFiles.size(); i++)
-  	fs << "file '" << pathToVideos << "\\" << inputFiles[i] << "'" << endl;
-
-  fs.close();
-
-#ifdef DEBUG
-  cout << "Wrote " << tempFileName << " with " << inputFiles.size() << " video files!" << endl;
-#endif  
+  // Write out temp file
+  writeTempFile(&inputFiles, &pathToVideos, &tempFileName);
 
   // Make the call!
-  ss.str("");
+  stringstream ss;
   ss << "\"" << pathToFFMPEG << "\" -f concat -safe 0 -i " 
      << tempFileName << " -c copy " << outputFileName;
 
@@ -123,4 +100,51 @@ string exec (const char* cmd) {
     }
 
     return result;
+}
+
+/**
+ * Scans the folder `pathToVideos` and finds all files not '.' or '..', 
+ * and stores in the passed vector.,
+ */
+void gatherInputFiles (vector<string>* inputFiles, string* pathToVideos) {
+
+  HANDLE hFind;
+  WIN32_FIND_DATA data;
+
+  stringstream ss;
+  ss << (*pathToVideos) << "\\*.*";
+
+  hFind = FindFirstFile(ss.str().c_str(), &data);
+  if (hFind != INVALID_HANDLE_VALUE) {
+    do {
+
+      if (strcmp(data.cFileName,".") == 0 ||
+        strcmp(data.cFileName,"..") == 0)
+        continue;
+
+      inputFiles->push_back(data.cFileName);
+
+    } while (FindNextFile(hFind, &data));
+    FindClose(hFind);
+  }
+}
+
+/**
+ * Writes out the contents of the inputFiles vector, with prefix pathToVideos,
+ * to the temporary file name specified by tempFileName.
+ */
+void writeTempFile (vector<string>* inputFiles, string* pathToVideos, string* tempFileName) {
+
+  // Open the temp file
+  fstream fs (tempFileName->c_str(), fstream::out);
+
+  int i;
+  for (i=0; i<inputFiles->size(); i++)
+    fs << "file '" << (*pathToVideos) << "\\" << inputFiles->at(i) << "'" << endl;
+
+  fs.close();
+
+#ifdef DEBUG
+  cout << "Wrote " << (*tempFileName) << " with " << inputFiles->size() << " video files!" << endl;
+#endif  
 }

@@ -2,10 +2,6 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <cstdlib>
-#include <cstdio>
-#include <cstring>
-#include <memory>
 #include <stdexcept>
 #include <array>
 #include <algorithm>
@@ -62,8 +58,7 @@ void waitForUserResponse (char*);
  * -- Validate inputs
  * -- Obtain directory listing of Cache directory
  * -- Run 'ffmpeg' on every file, determine if valid video file
- * -- Copy valid files into output directory, then manually add to 
- *    MP4Joiner in proper (ASC) order to join
+ * -- Copy valid files into output directory, then use concatVideos to join into MP4
  *
  * References
  * -=-=-=-=-=-
